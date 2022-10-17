@@ -102,8 +102,8 @@ function render(){
     topDiv.appendChild(titleSpan);
     topDiv.appendChild(document.createElement("br"));
     topDiv.appendChild(dragSpan);
-    const displayMouseList = document.createElement("datalist");
-    displayMouseList.id = 
+    
+
 }
 
 // Inject initial button/link into UI
