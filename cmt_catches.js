@@ -3,7 +3,7 @@
 (function () {
 
 // ty tsitu :)
-// Step 1: get data from server
+// Step 1: get user catch data from server
 async function getCatchStats(){
     let cookiematerial = {};
     let data;
@@ -24,7 +24,7 @@ async function getCatchStats(){
 }
 
 
-// Take cookie & filter
+// Take cookie & filter to only have location mice left
 async function listMiceOfCurrentLocation(){
     let currentLocation = user.environment_type;
     let mice= [];
@@ -37,113 +37,116 @@ async function listMiceOfCurrentLocation(){
     xhr.onload = function (){
         const response = JSON.parse(xhr.responseText);
         const stats = response.mouse_list_category.subgroups[0].mice;
-        console.log(stats);
         if (!stats) {
             console.log(`no stats found for ${currentLocation}`);
         }else{
             stats.forEach(el => {mice.push(el.name);});
-
         }
     }
     xhr.send();
     await new Promise(r => setTimeout(r, 1000));
     let storedData = JSON.parse(localStorage.getItem("CMT_catchstats"));
+    listOfMiceWithData = {};
     mice.forEach(el=>{
-        console.log(storedData[el])
-    }
-)
+        if (storedData[el]){
+            listOfMiceWithData[el] = (storedData[el])}
+        else{listOfMiceWithData[el] = (storedData[el + ' Mouse'])}
+        }
+    )
+    return listOfMiceWithData;
 }
 
+//TODO: add the needed link to the top to open the modal
 function addLinkToUI (){
     const target = document.querySelector(".mousehuntHud-gameInfo");
-    const div = document.createElement("div");
-    div.id = "cmt-locationcatches-link";
     const link = document.createElement("a");
     link.innerText = "[Mice caught]";
     link.addEventListener("click", function () {
-      const existing = document.querySelector("#cmt_micecaught_modal");
+      const existing = document.querySelector("#cmt_micecaught_link");
       if (existing) existing.remove();
       else uponButtonClick();
     });
-    div.appendChild(document.createElement("br"));
-    div.appendChild(button);
-    target.appendChild(div);
+    target.prepend(link);
+}
+function createGenericTopDiv(parent, title){
+    // Top div styling (close button, title, drag instructions)
+    const topDiv = document.createElement("div");
+
+    const titleSpan = document.createElement("span");
+    titleSpan.style.fontWeight = "bold";
+    titleSpan.style.fontSize = "18px";
+    titleSpan.style.textDecoration = "underline";
+    titleSpan.style.paddingLeft = "20px";
+    titleSpan.innerText = title;
+    const dragSpan = document.createElement("span");
+    dragSpan.innerText = "(Drag title to reposition this popup)";
+
+    const closeButton = document.createElement("button");
+    closeButton.style.float = "right";
+    closeButton.style.fontSize = "8px";
+    closeButton.textContent = "x";
+    closeButton.onclick = function () {
+      document.body.removeChild(parent);
+    };
+
+    topDiv.appendChild(closeButton);
+    topDiv.appendChild(titleSpan);
+    topDiv.appendChild(document.createElement("br"));
+    topDiv.appendChild(dragSpan);
+    return topDiv
 }
 
-function uponButtonClick(){
-    console.log("smlj");
-}
-// Not yet specified or used jank
-
-// function render(){
-//     const existing = document.querySelector("#cmt_crowns");
-//     if (existing){
-//         existing.remove();
-//     }
-
-//     const rawData = localStorage.getItem("CMT_catchstats");
-//     if(rawData){
-//         const data = JSON.parse(rawData);
-//     }
-
-//     // popup styling
-//     const mainDiv = document.createElement("div");
-//     mainDiv.id = "cmt_crowns"
-//     mainDiv.style.backgroundColor = "#F5F5F5";
-//     mainDiv.style.position = "fixed";
-//     mainDiv.style.zIndex = "42";
-//     mainDiv.style.left = "5px";
-//     mainDiv.style.top = "5px";
-//     mainDiv.style.border = "solid 3px #696969";
-//     mainDiv.style.borderRadius = "20px";
-//     mainDiv.style.padding = "10px";
-//     mainDiv.style.textAlign = "center";
-
-//     // Top div styling (close button, title, drag instructions)
-//     const topDiv = document.createElement("div");
-
-//     const titleSpan = document.createElement("span");
-//     titleSpan.style.fontWeight = "bold";
-//     titleSpan.style.fontSize = "18px";
-//     titleSpan.style.textDecoration = "underline";
-//     titleSpan.style.paddingLeft = "20px";
-//     titleSpan.innerText = "Catch Stats";
-//     const dragSpan = document.createElement("span");
-//     dragSpan.innerText = "(Drag title to reposition this popup)";
-
-//     const closeButton = document.createElement("button");
-//     closeButton.style.float = "right";
-//     closeButton.style.fontSize = "8px";
-//     closeButton.textContent = "x";
-//     closeButton.onclick = function () {
-//       document.body.removeChild(mainDiv);
-//     };
-
-//     topDiv.appendChild(closeButton);
-//     topDiv.appendChild(titleSpan);
-//     topDiv.appendChild(document.createElement("br"));
-//     topDiv.appendChild(dragSpan);
+//TODO: create the modal and do all the other smart stuffs
+async function uponButtonClick(){
+    const existing = document.querySelector("#cmt_micecaught_modal");
+    if (existing) existing.remove();
+   
+    // kindly repurposed UI elements provided by Tsitu
+    const mainDiv = document.createElement("div");
+    mainDiv.id = "cmt_micecaught_modal";
+    mainDiv.style.backgroundColor = "#F5F5F5";
+    mainDiv.style.position = "fixed";
+    mainDiv.style.zIndex = "42";
+    mainDiv.style.left = "5px";
+    mainDiv.style.top = "5px";
+    mainDiv.style.border = "solid 3px #696969";
+    mainDiv.style.borderRadius = "20px";
+    mainDiv.style.padding = "10px";
+    mainDiv.style.textAlign = "center";
     
+    // Create generic top div
+    const topDiv = createGenericTopDiv(mainDiv, "Area Catch Stats");
+    
+    // Create less generic table with mouse stuffs in it
+    const mouseTableDiv = document.createElement("div");
+    mouseTableDiv.style.overflowY = "scroll";
+    mouseTableDiv.style.height = "50vh";
+    const mouseTable = document.createElement("table");
+    const mouseTableBody = document.createElement("tbody");
 
-// }
+    // fill the table I think and also fetch the data to fill the table I think?
+    const mouseList = await listMiceOfCurrentLocation();
+    const micenames = Object.keys(mouseList);
+    //TODO: create the stuff for *in* a row
+    micenames.forEach(el=>{
+        //create row fields to add to row
 
-// // Inject initial button/link into UI
-// function injectUI() {
-//     document.querySelectorAll("#crown_progress_button").forEach(el => el.remove());
-//     const target = document.querySelector(".mousehuntHud-gameInfo");
-//     if (target) {
-//     const link = document.createElement("a");
-//     link.id = "crown_progress_button";
-//     link.innerText = "[Crown progress]";
-//     link.addEventListener("click", function () {
-//         const existing = document.querySelector("#cmt_crowns");
-//         if (existing) existing.remove();
-//         else render();
-//         return false; // Prevent default link clicked behavior
-//     });
-//     target.prepend(link);
-//     }
-// }
+        //add stuffs to row
+        const mouseRow = document.createElement("tr");
+        mouseRow.className = "cmt-catches-row";
 
+        //add row to table
+        mouseTableBody.appendChild(mouseRow);
+    })
+    //TODO: Create actual window that opens, with:
+    // - a :) title
+    // - a nice listing of the data received from listMiceOfCurrentLocation()
+    // - a button to refresh data?
+    // - potential war crimes
 
+    mouseTable.appendChild(mouseTableBody);
+    mouseTableDiv.appendChild(mouseTable)
+}
+
+addLinkToUI();
 })();
