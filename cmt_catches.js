@@ -136,11 +136,18 @@ async function uponButtonClick(){
         nameSpan.className = "cmt-catch-stats-namespan";
         nameSpan.style.fontSize = "14px";
         nameSpan.textContent = el;
+        const catchesField = document.createElement("td");
+        const catchesSpan = document.createElement("span");
+        catchesSpan.className = "cmt-catch-stats-catchspan";
+        catchesSpan.style.fontSize = "14px";
+        catchesSpan.textContent = mouseList[el]['catches'];
+        catchesField.appendChild(catchesSpan);
         //add stuffs to row
         const mouseRow = document.createElement("tr");
         mouseRow.className = "cmt-catches-row";
         nameField.appendChild(nameSpan);
         mouseRow.appendChild(nameField);
+        mouseRow.appendChild(catchesField);
         //add row to table
         mouseTableBody.appendChild(mouseRow);
     })
