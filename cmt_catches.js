@@ -40,7 +40,7 @@ async function listMiceOfCurrentLocation(){
         if (!stats) {
             console.log(`no stats found for ${currentLocation}`);
         }else{
-            stats.forEach(el => {mice.push(el.name);});
+            stats.forEach(el => {console.log(el);mice.push(el.name);});
         }
     }
     xhr.send();
@@ -57,12 +57,13 @@ async function listMiceOfCurrentLocation(){
 }
 
 //TODO: add the needed link to the top to open the modal
-function addLinkToUI (){
+async function addLinkToUI (){
+    await getCatchStats();
     const target = document.querySelector(".mousehuntHud-gameInfo");
     const link = document.createElement("a");
     link.innerText = "[Mice caught]";
     link.addEventListener("click", function () {
-      const existing = document.querySelector("#cmt_micecaught_link");
+      const existing = document.querySelector("#cmt_micecaught_modal");
       if (existing) existing.remove();
       else uponButtonClick();
     });
@@ -130,11 +131,16 @@ async function uponButtonClick(){
     //TODO: create the stuff for *in* a row
     micenames.forEach(el=>{
         //create row fields to add to row
-
+        const nameField = document.createElement("td");
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "cmt-catch-stats-namespan";
+        nameSpan.style.fontSize = "14px";
+        nameSpan.textContent = el;
         //add stuffs to row
         const mouseRow = document.createElement("tr");
         mouseRow.className = "cmt-catches-row";
-
+        nameField.appendChild(nameSpan);
+        mouseRow.appendChild(nameField);
         //add row to table
         mouseTableBody.appendChild(mouseRow);
     })
@@ -145,7 +151,13 @@ async function uponButtonClick(){
     // - potential war crimes
 
     mouseTable.appendChild(mouseTableBody);
-    mouseTableDiv.appendChild(mouseTable)
+    mouseTableDiv.appendChild(mouseTable);
+
+    mainDiv.appendChild(topDiv);
+    mainDiv.appendChild(document.createElement("br"));
+    mainDiv.appendChild(mouseTableDiv)
+    document.body.appendChild(mainDiv)
+
 }
 
 addLinkToUI();
