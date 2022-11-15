@@ -173,15 +173,51 @@
 	 *
 	 * @return {Object} The mouse stats.
 	 */
+	//https://www.mousehuntgame.com/managers/ajax/mice/getstat.php
+	//`sn=Hitgrab&hg_is_ajax=1&action=get_hunting_stats&uh=${user.unique_hash}`
+
+	// const data = await doRequest(
+	// 	'managers/ajax/mice/getstat.php',
+	// 	{
+	// 		sn: 'Hitgrab',
+	// 		hg_is_ajax: 1,
+	// 		action: 'get_hunting_stats',
+	// 		uh: user.unique_hash
+	// 		// action: 'get_environment',
+	// 		// category: user.environment_type, // eslint-disable-line no-undef
+	// 		// user_id: user.user_id, // eslint-disable-line no-undef
+	// 		// display_mode: 'stats',
+	// 		// view: 'ViewMouseListEnvironments',
+	// 	}
+	// );
+	// console.log(data);
+	// // Grab the data from the response.
+	// const mouseData = data?.hunting_stats;
+	// let fullData = {};
+	// console.log(mouseData);
+	// for (j in mouseData) {
+	// 	fullData[mouseData[j]['name']] = mouseData[j]['num_catches']
+	// }
+	// console.log(fullData)
+	// // Reorder by the num_catches key.
+	// mouseData.sort((a, b) => {
+	// 	return b.num_catches - a.num_catches;
+	// });
+	// console.log(mouseData);
+
 	const getMouseStats = async () => {
 		const data = await doRequest(
-			'managers/ajax/mice/mouse_list.php',
+			'managers/ajax/mice/getstat.php',
 			{
-				action: 'get_environment',
-				category: user.environment_type, // eslint-disable-line no-undef
-				user_id: user.user_id, // eslint-disable-line no-undef
-				display_mode: 'stats',
-				view: 'ViewMouseListEnvironments',
+				sn: 'Hitgrab',
+				hg_is_ajax: 1,
+				action: 'get_hunting_stats',
+				uh: user.unique_hash
+				// action: 'get_environment',
+				// category: user.environment_type, // eslint-disable-line no-undef
+				// user_id: user.user_id, // eslint-disable-line no-undef
+				// display_mode: 'stats',
+				// view: 'ViewMouseListEnvironments',
 			}
 		);
 
