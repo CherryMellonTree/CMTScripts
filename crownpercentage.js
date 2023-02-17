@@ -22,7 +22,7 @@
         {type:"Tactical",
         mice: ["Alchemist Mouse","Alnilam Mouse","Assassin Mouse"]}
     ]
-    let mouseScore = 
+    let defMouseScore = 
         {Arcane: 0,
         Draconic: 0,
         Forgotten: 0,
@@ -34,6 +34,18 @@
         Shadow: 0,
         Tactical:0
     }
+	let defMouseTypeList = {Arcane: [],
+        Draconic: [],
+        Forgotten: [],
+        Hydro: [],
+        Law:[],
+        Parental: [],
+        Physical : [],
+        Rift: [],
+        Shadow: [],
+        Tactical:[]
+    }
+	let mouseTypeList, mouseScore;
 	/**
 	 * Add styles to the page.
 	 *
@@ -206,11 +218,17 @@
 		// Return the data.
 		return mouseData ? mouseData : [];
 	};
+
     const calculateScore = (stats) => {
+		mouseScore = JSON.parse(JSON.stringify(defMouseScore));
+		mouseTypeList = JSON.parse(JSON.stringify(defMouseTypeList));
         stats.forEach((mouse) => {
             mouseCats.forEach((cat) => {
-                if (cat.mice.includes(mouse.name) && mouse.num_catches >= 100){
-                    mouseScore[cat.type] = mouseScore[cat.type] +1
+                if (cat.mice.includes(mouse.name)){
+					if(mouse.num_catches >= 100){
+						mouseScore[cat.type] = mouseScore[cat.type] +1
+					}
+					mouseTypeList[cat.type].push(mouse);
                 }
             })
         })
@@ -234,13 +252,19 @@
                 const imageNameContainer = document.createElement('div');
                 imageNameContainer.appendChild(image);
                 imageNameContainer.appendChild(name);
+				// Create a flat element
+				const flat = document.createElement('div');
+				flat.classList.add('cmt-mice-stats-catches');
+                let flatnumber = mouseScore[type] + " / " + (mouseCats[cat]["mice"].length);
+				flat.innerText = flatnumber;
                 // Create the percentage element.
                 const percentage = document.createElement('div');
                 percentage.classList.add('cmt-mice-stats-catches');
-                let number = 100*mouseScore[type]/(mouseCats[cat]["mice"].length);
+                let number = (100*mouseScore[type]/(mouseCats[cat]["mice"].length)).toFixed(3);
                 percentage.innerText = number + "%";
                 // Add the image and name to the type element.
                 typeEl.appendChild(imageNameContainer);
+				typeEl.appendChild(flat);
                 typeEl.appendChild(percentage);
 
 
@@ -308,18 +332,37 @@
 
 		// Add the header to the modal.
 		modal.appendChild(header);
-
+//-----
 		// Make the mouse stats table.
 		const mouseBody = document.createElement('div');
 		mouseBody.classList.add('cmt-mice-stats-body');
-
+		// TODO: add column headers
+		const mouseHeaders = document.createElement('div');
+		mouseHeaders.classList.add('cmt-mice-stats');
+		const mouseImageHeader = document.createElement('div');
+		const mouseNameHeader = document.createElement('div');
+		const mouseFlatHeader = document.createElement('div');
+		const mousePercentHeader = document.createElement('div');
+		mouseImageHeader.innerText = "____";
+		mouseNameHeader.innerText = "Name";
+		mouseFlatHeader.innerText = "Flat score";
+		mousePercentHeader.innerText = "percentage score";
+		mouseHeaders.appendChild(mouseImageHeader);
+		mouseHeaders.appendChild(mouseNameHeader);
+		mouseHeaders.appendChild(mouseFlatHeader);
+		mouseHeaders.appendChild(mousePercentHeader);
+		modal.appendChild(mouseHeaders);
 		// Get the mouse stats.
 		const mouseStats = await getMouseStats();
 
 		// Loop through the stats and add them to the modal.
 		calculateScore(mouseStats);
         for (const score in mouseScore){
-			mouseBody.appendChild(buildScoreMarkup(score));
+			let result = buildScoreMarkup(score);
+			result.addEventListener('click', () => {
+				generateTypeDetails(score);
+			});
+			mouseBody.appendChild(result);
 
         }
 
@@ -332,16 +375,116 @@
 		// Add the wrapper to the body.
 		target.appendChild(modalWrapper);
 	};
+	const generateTypeDetails = async (score) => {
+		// First, check to make sure we have the element we want to append to.
+		const target = document.querySelector('.pageFrameView-content');
+		if (! target) {
+			return;
+		}
+		// Remove the existing modal.
+		const existing = document.getElementById('cmt-type-details');
+		if (existing) {
+			existing.remove();
+		}
+		// Create the modal.
+		const modalWrapper = document.createElement('div');
+		modalWrapper.id = 'cmt-type-details';
 
-    addStyles(`#cmt-mice-stats {
+
+		// Create the wrapper.
+		const modal = document.createElement('div');
+		modal.classList.add('cmt-type-details-wrapper');
+
+		// Create the header.
+		const header = document.createElement('div');
+		header.classList.add('cmt-mice-stats-header');
+
+		// Add the title;
+		const title = document.createElement('h1');
+		title.innerText = score + ' details';
+		header.appendChild(title);
+
+		// Create a close button icon.
+		const closeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+		closeIcon.classList.add('cmt-mice-stats-close');
+		closeIcon.setAttribute('viewBox', '0 0 24 24');
+		closeIcon.setAttribute('width', '18');
+		closeIcon.setAttribute('height', '18');
+		closeIcon.setAttribute('fill', 'none');
+		closeIcon.setAttribute('stroke', 'currentColor');
+		closeIcon.setAttribute('stroke-width', '1.5');
+
+		// Create the path.
+		const closePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+		closePath.setAttribute('d', 'M18 6L6 18M6 6l12 12');
+		closeIcon.appendChild(closePath);
+
+		// Close the modal when the icon is clicked.
+		closeIcon.addEventListener('click', () => {
+			modalWrapper.remove();
+		});
+
+		// Append the button.
+		header.appendChild(closeIcon);
+
+		// Add the header to the modal.
+		modal.appendChild(header);
+
+		const mouseBody = document.createElement('div');
+		mouseBody.classList.add('cmt-type-details-body');
+
+		for (let mouse in mouseTypeList[score]){
+			const mouseEl = document.createElement('a');
+			mouseEl.classList.add('cmt-mice-stats');
+
+			//Create the image element
+			const image = document.createElement('div');
+			image.classList.add('cmt-mice-stats-image');
+			image.style.backgroundImage = `url('${ mouseTypeList[score][mouse].thumb }')`;
+			
+			
+			// Create the name element.
+			const name = document.createElement('div');
+			name.classList.add('cmt-mice-stats-name');
+			name.innerText = mouseTypeList[score][mouse].name;
+
+			// Create a wrapper for the name and image.
+			const imageNameContainer = document.createElement('div');
+			imageNameContainer.appendChild(image);
+			imageNameContainer.appendChild(name);
+
+			// Create the catches element.
+			const catches = document.createElement('div');
+			catches.classList.add('cmt-mice-stats-catches');
+			catches.innerText = mouseTypeList[score][mouse].num_catches;
+
+			// Add the image and name to the mouse element.
+			mouseEl.appendChild(imageNameContainer);
+			mouseEl.appendChild(catches);
+			mouseBody.appendChild(mouseEl)
+
+		}
+		modal.appendChild(mouseBody);
+
+		// Add the modal to the wrapper.
+		modalWrapper.appendChild(modal);
+		// TODO: add it somewhere properly 
+		// Add the wrapper to the body.
+		target.appendChild(modalWrapper);
+
+		console.log(mouseTypeList[score]);
+	}
+
+    addStyles(`#cmt-mice-stats, #cmt-type-details {
         position: absolute;
         top: 10px;
         left: -275px;
     }
 
-    .cmt-mice-stats-wrapper {
+    .cmt-mice-stats-wrapper, .cmt-type-details-wrapper {
+		z-index: 5000;
         position: fixed;
-        width: 250px;
+        width: 450px;
         background: #f6f3eb;
         border: 1px solid #534022;
         box-shadow: 1px 1px 1px 0px #9d917f;
@@ -377,7 +520,7 @@
         background-color: #e8e3d7;
     }
 
-    .cmt-mice-stats {
+    .cmt-mice-stats, .cmt-type-details {
         display: flex;
         justify-content: space-between;
         padding: 2px 0;
@@ -386,7 +529,7 @@
         color: #000;
     }
 
-    .cmt-mice-stats:hover,
+    .cmt-mice-stats:hover, .cmt-type-details:hover,
     .cmt-mice-stats-wrapper .cmt-mice-stats:nth-child(odd):hover {
         outline: 1px solid #ccc;
         background-color: #eee;
