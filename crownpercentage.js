@@ -1,27 +1,8 @@
 ((function () {
 	'use strict';
-    const mouseCats = [
-        {type:"Arcane",
-        mice: ["Buccaneer Mouse","Hapless Marionette"]},
-        {type:"Draconic",
-        mice: ["Chameleon Mouse","Dragon Mouse","Dumpling Chef Mouse"]},
-        {type:"Forgotten",
-        mice: ["Acolyte Mouse","Balack the Banished"]},
-        {type:"Hydro",
-        mice: ["Aged Mouse","Briegull Mouse","Black Widow Mouse"]},
-        {type:"Law",
-        mice: ["Bandit Mouse","Gate Guardian Mouse","Gold Mouse"]},
-        {type:"Parental",
-        mice: ["Aged Mouse"]},
-        {type:"Physical",
-        mice: ["Abominable Snow Mouse","Bear Mouse"]},
-        {type:"Rift",
-        mice: ["Fairy Mouse","Fiddler Mouse","Gate Guardian Mouse"]},
-        {type:"Shadow",
-        mice: ["Aquos Mouse","Bionic Mouse"]},
-        {type:"Tactical",
-        mice: ["Alchemist Mouse","Alnilam Mouse","Assassin Mouse"]}
-    ]
+	//TODO: make this variable based on user input
+	let cutoff = 100;
+
     let defMouseScore = 
         {Arcane: 0,
         Draconic: 0,
@@ -213,6 +194,11 @@
 
 		// Grab the data from the response.
 		const mouseData = data?.hunting_stats
+		
+		// Reorder by the num_catches key.
+		mouseData.sort((a, b) => {
+			return a.num_catches - b.num_catches;
+		});
 
 
 		// Return the data.
@@ -223,15 +209,28 @@
 		mouseScore = JSON.parse(JSON.stringify(defMouseScore));
 		mouseTypeList = JSON.parse(JSON.stringify(defMouseTypeList));
         stats.forEach((mouse) => {
-            mouseCats.forEach((cat) => {
-                if (cat.mice.includes(mouse.name)){
-					if(mouse.num_catches >= 100){
-						mouseScore[cat.type] = mouseScore[cat.type] +1
-					}
-					mouseTypeList[cat.type].push(mouse);
-                }
-            })
+			let used = 0;
+			let mname = mouse.name;
+			if (mname.includes("Mouse")){
+				mname = mname.slice(0, -6);
+			}
+			for (let i = 0; i < mouseCats.length; i++) {
+				const cat = mouseCats[i];
+				if (cat.mice.includes(mname)) {
+				  if (mouse.num_catches >= cutoff) {
+					mouseScore[cat.type] = mouseScore[cat.type] + 1;
+				  }
+				  mouseTypeList[cat.type].push(mouse);
+				  used += 1;
+				}
+			  }
+			if (used==0){
+				console.log(mname)
+			}
         })
+		console.log(mouseScore);
+		console.log(mouseTypeList);
+		console.log(stats);
     }
 
     const buildScoreMarkup = (type)=>{
@@ -260,8 +259,8 @@
                 // Create the percentage element.
                 const percentage = document.createElement('div');
                 percentage.classList.add('cmt-mice-stats-catches');
-                let number = (100*mouseScore[type]/(mouseCats[cat]["mice"].length)).toFixed(3);
-                percentage.innerText = number + "%";
+                let number = (100*mouseScore[type]/(mouseCats[cat]["mice"].length)).toFixed(1).padStart(4, '0');
+                percentage.innerText = (number + "%").padEnd(6);
                 // Add the image and name to the type element.
                 typeEl.appendChild(imageNameContainer);
 				typeEl.appendChild(flat);
@@ -435,8 +434,12 @@
 
 		for (let mouse in mouseTypeList[score]){
 			const mouseEl = document.createElement('a');
-			mouseEl.classList.add('cmt-mice-stats');
-
+			if (mouseTypeList[score][mouse].num_catches>=cutoff){
+				mouseEl.classList.add('cmt-mice-stats-finished');
+			}else{
+				mouseEl.classList.add('cmt-mice-stats');
+			}
+			console.log(mouse);
 			//Create the image element
 			const image = document.createElement('div');
 			image.classList.add('cmt-mice-stats-image');
@@ -472,23 +475,38 @@
 		// Add the wrapper to the body.
 		target.appendChild(modalWrapper);
 
-		console.log(mouseTypeList[score]);
 	}
 
-    addStyles(`#cmt-mice-stats, #cmt-type-details {
+    addStyles(`#cmt-mice-stats {
         position: absolute;
         top: 10px;
         left: -275px;
     }
 
+	#cmt-mice-stats-finished {
+        position: absolute;
+        top: 10px;
+        left: -275px;
+    }
+
+	#cmt-type-details {
+        position: absolute;
+        top: 10px;
+        left: 27px;
+    }
+
     .cmt-mice-stats-wrapper, .cmt-type-details-wrapper {
 		z-index: 5000;
         position: fixed;
-        width: 450px;
+        width: 300px;
         background: #f6f3eb;
         border: 1px solid #534022;
         box-shadow: 1px 1px 1px 0px #9d917f;
     }
+	.cmt-type-details-wrapper {
+		height: 75%;
+		overflow: auto;
+	}
 
     .cmt-mice-stats-header {
         display: flex;
@@ -516,11 +534,11 @@
         overflow-x: hidden;
     }
 
-    .cmt-mice-stats-wrapper .cmt-mice-stats:nth-child(odd) {
+    .cmt-mice-stats-wrapper .cmt-mice-stats:nth-child(odd){
         background-color: #e8e3d7;
     }
 
-    .cmt-mice-stats, .cmt-type-details {
+    .cmt-mice-stats, .cmt-type-details{
         display: flex;
         justify-content: space-between;
         padding: 2px 0;
@@ -528,9 +546,13 @@
         padding: 10px 10px;
         color: #000;
     }
+	.cmt-mice-stats-finished, .cmt-mice-stats-wrapper .cmt-mice-stats-finished:nth-child(odd) {
+		color: #ffffff;
+		background-color: black !important;
+	}
 
-    .cmt-mice-stats:hover, .cmt-type-details:hover,
-    .cmt-mice-stats-wrapper .cmt-mice-stats:nth-child(odd):hover {
+    .cmt-mice-stats:hover, .cmt-type-details:hover, .cmt-mice-stats-finished:hover
+    .cmt-mice-stats-wrapper .cmt-mice-stats:nth-child(odd):hover, .cmt-mice-stats-wrapper .cmt-mice-stats-finished:nth-child(odd):hover {
         outline: 1px solid #ccc;
         background-color: #eee;
         text-decoration: none;
@@ -578,4 +600,31 @@
         icon: 'https://www.mousehuntgame.com/images/ui/hud/menu/prize_shoppe.png',
         callback: showModal
     });
+	const mouseCats = [
+        {type:"Arcane",
+        mice: ["Abominable Snow","Admiral Cloudbeard","Arcane Summoner","Artillery Commander","Battering Ram","Big Bad Burroughs","Bionic","Black Widow","Breeze Borrower","Brown","Captain Croissant","Charming Chimer","Cloud Collector","Cloud Miner","Clumsy Chemist","Consumed Charm Tinkerer","Core Sample","Corrupt","Cowardly","Craggy Ore","Crimson Commander","Crown Collector","Cursed","Cursed Enchanter","Cursed Engineer","Cursed Librarian","Cursed Taskmaster","Cursed Thief","Cutthroat Cannoneer","Cutthroat Pirate","Cycloness","Dark Magi","Dawn Guardian","Daydreamer","Demolitions","Diamond","Dwarf","Empyrean Appraiser","Empyrean Geologist","Essence Collector","Essence Guardian","Ethereal Enchanter","Ethereal Engineer","Ethereal Librarian","Ethereal Thief","Extreme Everysports","Farmhand","Field","Flame Ordnance","Fluttering Flutist","Flying","Fog","Fortuitous Fool","Frosty Snow","Frozen","Gargoyle","Gate Guardian","Gold","Golem","Gorgon","Granite","Granny Spice","Grey","Heart of the Meteor","Homeopathic Apothecary","Hurdle","Hypnotized Gunslinger","Industrious Digger","Inferna, The Engulfed","Itty-Bitty Burroughs","Keeper","Keeper's Assistant","Kite Flyer","Lambent Crystal","Launchpad Labourer","Lich","Lightning Rod","Longtail","Magic","Mairitime Pirate","Meteorite Golem","Meteorite Mystic","Miner","Mole","Monster of the Meteor","Mountain","Mutated Brown","Mutated Grey","Mutated Mole","Mutated White","Nibbler","Night Watcher","Nightfire","Nightshade Flower Girl","Nightshade Maiden","Nugget","Old Spice Collector","Ooze","Paladin","Paragon of Arcane","Pebble","Peggy the Plunderer","Pugilist","Rainwater Purifier","Realm Ripper","Reaper","Relic Hunter","Richard the Rich","Rock Muncher","Sacred Shrine","Scarlet Revenger","Scavenger","Scruffy","Silvertail","Skeleton","Sky Dancer","Sky Glass Glazier","Sky Glass Sorcerer","Sky Glider","Sky Greaser","Sky Highborne","Skydiver","Slope Swimmer","Sludge Scientist","Sorcerer","Spectre","Speedy","Spice Farmer","Spice Finder","Spice Raider","Spice Reaper","Spice Seer","Spice Sovereign","Spider","Spore Salesman","Spotted","Spud","Squeaker Bot","Steel","Stone Cutter","Suave Pirate","Subterranean","Terror Knight","Tiny","Trampoline","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Wave Racer","White","White Mage","Wight","Wind Warrior","Wind Watcher","Windy Farmer","Winter Games"]},
+        {type:"Draconic",
+        mice: ["Admiral Cloudbeard","Bearded Elder","Black Widow","Breeze Borrower","Brown","Bruticus, the Blazing","Burly Bruiser","Captain Croissant","Cinderstorm","Cloud Collector","Cloud Miner","Consumed Charm Tinkerer","Cork Defender","Corkataur","Corky, the Collector","Cowardly","Crimson Commander","Crown Collector","Cutthroat Cannoneer","Cutthroat Pirate","Daydreamer","Draconic Warden","Dragon","Dragonbreather","Dragoon","Dwarf","Emberstone Scaled","Empyrean Appraiser","Empyrean Geologist","Empyrean Javelineer","Extreme Everysports","Farmhand","Field","Flying","Fortuitous Fool","Ful'Mina, The Mountain Queen","Fuzzy Drake","Gargantuamouse","Grey","Homeopathic Apothecary","Horned Cork Hoarder","Hurdle","Ignatia","Kalor'ignis of the Geyser","Kite Flyer","Lancer Guard","Launchpad Labourer","Lightning Rod","Longtail","Magic","Mairitime Pirate","Mild Spicekin","Nibbler","Nightshade Flower Girl","Nightshade Maiden","Paragon of Dragons","Peggy the Plunderer","Pugilist","Pyrehyde","Rainwater Purifier","Rambunctious Rain Rumbler","Regal Spearman","Relic Hunter","Richard the Rich","Scarlet Revenger","Scruffy","Sizzle Pup","Sky Greaser","Skydiver","Smoldersnap","Speedy","Spore Salesman","Spotted","Spud","Steam Sailor","Steel","Stormsurge, the Vile Tempest","Suave Pirate","Thunder Strike","Thundering Watcher","Thunderlord","Tiny","Tiny Dragonfly","Trampoline","Vaporior","Violet Stormchild","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Warming Wyvern","Wave Racer","Whelpling","White","Windy Farmer","Winter Games"]},
+        {type:"Forgotten",
+        mice: ["Abominable Snow","Acolyte","Admiral Cloudbeard","Ancient Scribe","Ash Golem","Automated Stone Sentry","Balack the Banished","Battle Cleric","Bionic","Bitter Grammarian","Bitter Root","Black Widow","Brothers Grimmaus","Brown","Captain Croissant","Cavern Crumbler","Chrono","Cloud Miner","Clumsy Chemist","Consumed Charm Tinkerer","Corridor Bruiser","Cowardly","Crag Elder","Craggy Ore","Crown Collector","Crystal Behemoth","Crystal Cave Worm","Crystal Controller","Crystal Golem","Crystal Lurker","Crystal Observer","Crystal Queen","Crystalback","Crystalline Slasher","Cumulost","Cutthroat Cannoneer","Cutthroat Pirate","Dark Templar","Daydreamer","Decrepit Tentacle Terror","Derr Lich","Diamond","Diamondhide","Dirt Thing","Drudge","Dwarf","Eclipse","Elub Lich","Empyrean Appraiser","Empyrean Geologist","Ethereal Guardian","Exo-Tech","Extreme Everysports","Farmhand","Fibbocchio","Field","Flamboyant Flautist","Floating Spore","Flying","Fog","Forgotten Elder","Fortuitous Fool","Frosty Snow","Frozen","Fungal Technomorph","Funglore","Gemorpher","Gemstone Worshipper","Gold","Granite","Greenbeard","Grey","Hans Cheesetian Squeakersen","Hired Eidolon","Humphrey Dumphrey","Huntereater","Hurdle","Ice Regent","Kite Flyer","Launchpad Labourer","Lightning Rod","Little Bo Squeak","Little Miss Fluffet","Longtail","Lost","Lost Legionnaire","Lumahead","Madame d'Ormouse","Magic","Mairitime Pirate","Manaforge Smith","Masked Pikeman","Matriarch Gander","Matron of Machinery","Matron of Wealth","Mimic","Mind Tearer","Molten Midas","Mouldy Mole","Mountain","Mush","Mush Monster","Mushroom Harvester","Mushroom Sprite","Mutated Brown","Mutated Grey","Mutated Mole","Mutated White","Mystic Guardian","Mystic Herald","Mystic Scholar","Mythweaver","Nerg Lich","Nibbler","Nightshade Fungalmancer","Nightshade Masquerade","Nightshade Nanny","Paladin Weapon Master","Paragon of Forgotten","Pebble","Peggy the Plunderer","Pinkielina","Princess and the Olive","Pugilist","Quillback","RR-8","Reanimated Carver","Relic Hunter","Retired Minotaur","Richard the Rich","Riptide","Sanguinarian","Scarlet Revenger","Scruffy","Shadow Stalker","Shattered Obsidian","Silvertail","Sir Fleekio","Sky Greaser","Skydiver","Slope Swimmer","Sludge Scientist","Solemn Soldier","Soul Binder","Speedy","Spheric Diviner","Spiked Burrower","Splintered Stone Sentry","Spore Muncher","Sporeticus","Spotted","Spry Sky Explorer","Spry Sky Seer","Spud","Squeaker Bot","Stalagmite","Steel","Stone Maiden","Suave Pirate","Summoning Scholar","Tech Golem","Tiny","Trampoline","Treasure Brawler","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Wave Racer","White","Winter Games"]
+		},
+        {type:"Hydro",
+        mice: ["Abominable Snow","Admiral Cloudbeard","Alchemist","Alnitak","Ancient of the Deep","Angelfish","Angler","Architeuthulhu of the Abyss","Bark","Barkshell","Barmy Gunner","Barnacle Beautician","Barracuda","Beachcomber","Betta","Bilged Boatswain","Biohazard","Bionic","Bitter Root","Black Widow","Bog Beast","Bottled","Bottom Feeder","Briegull","Brown","Bruticle","Buccaneer","Cabin Boy","Calalilly","Camoflower","Camofusion","Captain","Captain Croissant","Caravan Guard","Careless Catfish","Carmine the Apothecary","Carnivore","Champion","Chipper","City Noble","City Worker","Cloud Miner","Cloud Strider","Clownfish","Clumsy Carrier","Clumsy Chemist","Consumed Charm Tinkerer","Cook","Coral","Coral Cuddler","Coral Dragon","Coral Gardener","Coral Guard","Coral Harvester","Coral Queen","Corrupt Commodore","Covetous Coastguard","Cowardly","Crabolia","Craggy Ore","Crimson Commander","Crown Collector","Cute Cloud Conjurer","Cutthroat Cannoneer","Cutthroat Pirate","Cuttle","Dashing Buccaneer","Daydreamer","Deep","Deep Sea Diver","Dehydrated","Deranged Deckhand","Derpshark","Diamond","Dread Pirate M","Dwarf","Eel","Elder","Elite Guardian","Elub Chieftain","Empyrean Appraiser","Empyrean Geologist","Enginseer","Extreme Everysports","Farmhand","Field","Fiend","Floating Spore","Flying","Fog","Fortuitous Fool","Frostbite","Frostlance Guard","Frostwing Commander","Frosty Snow","Frozen","Fungal Spore","Funglore","Gelatinous Octahedron","General Drheller","Gold","Granite","Grey","Guppy","Hazmat","Heavy Blaster","Hurdle","Hydra","Hydrologist","Iceblade","Iceblock","Icebreaker","Icewing","Icicle","Incompetent Ice Climber","Inferno Mage","Jellyfish","Kite Flyer","Koimaid","Lab Technician","Lady Coldsnap","Launchpad Labourer","Leviathan","Lightning Rod","Living Ice","Living Salt","Longtail","Lord Splodington","Lumahead","Magic","Magmarage","Mairitime Pirate","Mammoth","Manatee","Melodramatic Minnow","Mermouse","Mermousette","Mershark","Mist Maker","Mlounder Flounder","Monster Tail","Mouldy Mole","Mountain","Mush","Mushroom Sprite","Mutant Mongrel","Mutant Ninja","Mutated Behemoth","Mutated Brown","Mutated Grey","Mutated Mole","Mutated Siblings","Mutated White","Mystic","Necromancer","Nefarious Nautilus","Nibbler","Nightshade Masquerade","Nimbomancer","Octomermaid","Old One","Outbreak Assassin","Over-Prepared","Oxygen Baron","Pack","Paragon of Water","Pearl","Pearl Diver","Pebble","Peggy the Plunderer","Penguin","Pinchy","Pirate","Pirate Anchor","Plague Hag","Polar Bear","Pompous Perch","Princess Fist","Protector","Puffer","Pugilist","Quillback","Relic Hunter","Richard the Rich","Saboteur","Salt Water Snapper","Saltwater Axolotl","Sand Dollar Diver","Sand Dollar Queen","Sand Sifter","Scarlet Revenger","School of Mish","Scout","Scrap Metal Monster","Scruffy","Seadragon","Serpent Monster","Shattered Carmine","Shelder","Shipwrecked","Shroom","Silth","Silvertail","Sinister Squid","Siren","Sky Greaser","Sky Surfer","Skydiver","Slimefist","Slope Swimmer","Sludge","Sludge Scientist","Sludge Soaker","Sludge Swimmer","Snow Bowler","Snow Slinger","Snow Sniper","Snow Soldier","Snowblind","Soothsayer","Spear Fisher","Speedy","Spiked Burrower","Spore","Spore Muncher","Sporeticus","Spotted","Spud","Squeaken","Squeaker Bot","Steel","Stickybomber","Stingray","Strawberry Hotcakes","Suave Pirate","Sunken Banshee","Sunken Citizen","Swabbie","Swamp Runner","Swashblade","Tackle Tracker","Tadpole","Taleweaver","Telekinetic Mutant","Tentacle","The Menace","Thirsty","Thistle","Thorn","Tiny","Toxic Warrior","Trampoline","Treasure Hoarder","Treasure Keeper","Tritus","Turret Guard","Twisted Carmine","Twisted Hotcakes","Twisted Lilly","Urchin King","Vanquisher","Vicious Vampire Squid","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Water Nymph","Water Wielder","Wave Racer","White","Winter Games","Winter Mage","Wolfskie","Yeti"]
+		},
+        {type:"Law",
+        mice: ["Abominable Snow","Admiral Cloudbeard","Agent M","Angry Train Staff","Aristo-Cat Burglar","Automorat","Bartender","Bionic","Black Powder Thief","Black Widow","Blacksmith","Bounty Hunter","Brown","Burglar","Cannonball","Captain Croissant","Cardshark","Circuit Judge","Cloud Miner","Clumsy Chemist","Coal Shoveller","Consumed Charm Tinkerer","Cowardly","Craggy Ore","Crate Camo","Croquet Crusher","Crown Collector","Cute Crate Carrier","Cutthroat Cannoneer","Cutthroat Pirate","Dangerous Duo","Daydreamer","Desert Architect","Desert Nomad","Desperado","Devious Gentleman","Diamond","Dwarf","Empyrean Appraiser","Empyrean Geologist","Extreme Everysports","Falling Carpet","Farmhand","Farrier","Field","Flying","Fog","Fortuitous Fool","Frosty Snow","Frozen","Fuel","Glass Blower","Gold","Granite","Grey","Hardworking Hauler","Hookshot","Hurdle","Kite Flyer","Lasso Cowgirl","Launchpad Labourer","Lawbender","Lightning Rod","Limestone Miner","Longtail","Lumberjack","Mage Weaver","Magic","Magmatic Crystal Thief","Magmatic Golem","Mairitime Pirate","Market Guard","Market Thief","Master Burglar","Meteorite Miner","Meteorite Mover","Meteorite Snacker","Mining Materials Manager","Mischievous Meteorite Miner","Mountain","Mouse With No Name","Mutated Brown","Mutated Grey","Mutated Mole","Mutated White","Mysterious Traveller","Nibbler","Outlaw","Paragon of the Lawless","Parlour Player","Passenger","Pebble","Peggy the Plunderer","Photographer","Pie Thief","Prospector","Pugilist","Pump Raider","Pyrite","Queen Quesada","Queso Extractor","Relic Hunter","Richard the Rich","Ruffian","Saloon Gal","Scarlet Revenger","Scruffy","Sharpshooter","Shopkeeper","Silvertail","Sky Greaser","Skydiver","Sleepy Merchant","Slope Swimmer","Sludge Scientist","Snake Charmer","Speedy","Spice Merchant","Spotted","Spud","Squeaker Bot","Stack of Thieves","Stagecoach Driver","Steel","Steel Horse Rider","Stoutgear","Stowaway","Stuffy Banker","Suave Pirate","Supply Hoarder","Tiny","Tiny Saboteur","Tonic Salesman","Train Conductor","Train Engineer","Trampoline","Travelling Barber","Tumbleweed","Undertaker","Upper Class Lady","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Warehouse Manager","Wave Racer","White","Winter Games"]},
+        {type:"Parental",
+        mice: ["Aged Mouse"]},
+        {type:"Physical",
+        mice: ["Abominable Snow","Admiral Cloudbeard","Aged","Bandit","Big Bad Burroughs","Bionic","Black Widow","Blacksmith","Brown","Captain Croissant","Caravan Guard","Clockwork Samurai","Cloud Miner","Clumsy Chemist","Consumed Charm Tinkerer","Core Sample","Cowardly","Craggy Ore","Crimson Commander","Crimson Ranger","Crimson Titan","Crimson Watch","Crown Collector","Cutthroat Cannoneer","Cutthroat Pirate","Daydreamer","Demolitions","Derpicorn","Derr Chieftain","Desert Archer","Desert Architect","Desert Nomad","Desert Soldier","Diamond","Dwarf","Empyrean Appraiser","Empyrean Geologist","Escape Artist","Explorator","Extreme Everysports","Falling Carpet","Farmhand","Field","Flame Archer","Flame Warrior","Flying","Fog","Fortuitous Fool","Frosty Snow","Frozen","Gladiator","Glamorous Gladiator","Glass Blower","Gold","Granite","Grey","Ground Gavaleer","Grunt","Guardian","Hapless Marionette","Healer","Herc","Hurdle","Hydrophobe","Impersonator","Industrious Digger","Itty-Bitty Burroughs","Kite Flyer","Lambent Crystal","Launchpad Labourer","Lightning Rod","Limestone Miner","Lockpick","Longtail","Lumberjack","M400","Mage Weaver","Magic","Mairitime Pirate","Market Guard","Miner","Mintaka","Mole","Monster","Mountain","Mutated Brown","Mutated Grey","Mutated Mole","Mutated White","Nibbler","Nugget","Paragon of Strength","Pebble","Peggy the Plunderer","Pocketwatch","Puddlemancer","Pugilist","Puppet Master","Relic Hunter","Renegade","Richard the Rich","Rock Muncher","Rogue","Scarlet Revenger","Scribe","Scruffy","Seer","Sentinel","Silvertail","Sky Greaser","Sky Squire","Sky Swordsman","Skydiver","Slope Swimmer","Sludge Scientist","Snake Charmer","Sock Puppet Ghost","Speedy","Spellbinder","Spice Merchant","Spotted","Spring Familiar","Spud","Squeaker Bot","Stealth","Steam Grip","Steel","Stone Cutter","Suave Pirate","Subterranean","Tanglefoot","Theurgy Warden","Tiny","Toy Sylvan","Trailblazer","Trampoline","Vanguard","Vinetail","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Warmonger","Wave Racer","White","Winter Games","Wordsmith","Wound Up White"]},
+        {type:"Rift",
+        mice: ["Abominable Snow","Admiral Cloudbeard","Agent M","Angry Train Staff","Aristo-Cat Burglar","Automorat","Bartender","Bionic","Black Powder Thief","Black Widow","Blacksmith","Bounty Hunter","Brown","Burglar","Cannonball","Captain Croissant","Cardshark","Circuit Judge","Cloud Miner","Clumsy Chemist","Coal Shoveller","Consumed Charm Tinkerer","Cowardly","Craggy Ore","Crate Camo","Croquet Crusher","Crown Collector","Cute Crate Carrier","Cutthroat Cannoneer","Cutthroat Pirate","Dangerous Duo","Daydreamer","Desert Architect","Desert Nomad","Desperado","Devious Gentleman","Diamond","Dwarf","Empyrean Appraiser","Empyrean Geologist","Extreme Everysports","Falling Carpet","Farmhand","Farrier","Field","Flying","Fog","Fortuitous Fool","Frosty Snow","Frozen","Fuel","Glass Blower","Gold","Granite","Grey","Hardworking Hauler","Hookshot","Hurdle","Kite Flyer","Lasso Cowgirl","Launchpad Labourer","Lawbender","Lightning Rod","Limestone Miner","Longtail","Lumberjack","Mage Weaver","Magic","Magmatic Crystal Thief","Magmatic Golem","Mairitime Pirate","Market Guard","Market Thief","Master Burglar","Meteorite Miner","Meteorite Mover","Meteorite Snacker","Mining Materials Manager","Mischievous Meteorite Miner","Mountain","Mouse With No Name","Mutated Brown","Mutated Grey","Mutated Mole","Mutated White","Mysterious Traveller","Nibbler","Outlaw","Paragon of the Lawless","Parlour Player","Passenger","Pebble","Peggy the Plunderer","Photographer","Pie Thief","Prospector","Pugilist","Pump Raider","Pyrite","Queen Quesada","Queso Extractor","Relic Hunter","Richard the Rich","Ruffian","Saloon Gal","Scarlet Revenger","Scruffy","Sharpshooter","Shopkeeper","Silvertail","Sky Greaser","Skydiver","Sleepy Merchant","Slope Swimmer","Sludge Scientist","Snake Charmer","Speedy","Spice Merchant","Spotted","Spud","Squeaker Bot","Stack of Thieves","Stagecoach Driver","Steel","Steel Horse Rider","Stoutgear","Stowaway","Stuffy Banker","Suave Pirate","Supply Hoarder","Tiny","Tiny Saboteur","Tonic Salesman","Train Conductor","Train Engineer","Trampoline","Travelling Barber","Tumbleweed","Undertaker","Upper Class Lady","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Warehouse Manager","Wave Racer","White","Winter Games"]},
+        {type:"Shadow",
+        mice: ["Abominable Snow","Admiral Cloudbeard","Alpha Weremouse","Aquos","Astrological Astronomer","Bat","Battering Ram","Big Bad Burroughs","Bionic","Black Mage","Black Widow","Breeze Borrower","Brimstone","Brown","Captain Croissant","Chip Chiseler","Chitinous","Cloud Collector","Cloud Miner","Clumsy Chemist","Coffin Zombie","Consumed Charm Tinkerer","Core Sample","Cowardly","Craggy Ore","Crown Collector","Cutthroat Cannoneer","Cutthroat Pirate","Davy Jones","Daydreamer","Decrepit Tentacle Terror","Demolitions","Diamond","Dunehopper","Dwarf","Empyrean Appraiser","Empyrean Geologist","Enslaved Spirit","Extreme Everysports","Fall Familiar","Farmhand","Fetid Swamp","Field","Fiery Crusher","Flying","Fog","Fortuitous Fool","Frosty Snow","Frozen","Ghost","Giant Snail","Gluttonous Zombie","Goblin","Gold","Grampa Golem","Granite","Grey","Grubling","Grubling Herder","Harpy","Harvest Harrier","Harvester","Homeopathic Apothecary","Hurdle","Ignis","Industrious Digger","Itty-Bitty Burroughs","Jurassic","King Grub","King Scarab","Kite Flyer","Lambent Crystal","Launchpad Labourer","Lightning Rod","Longtail","Lycan","Magic","Magma Carrier","Mairitime Pirate","Miner","Mischievous Wereminer","Mole","Monsoon Maker","Monster","Mountain","Mousevina von Vermin","Mummy","Mutated Brown","Mutated Grey","Mutated Mole","Mutated White","Nachore Golem","Nachous, The Molten","Nibbler","Night Shift Materials Manager","Nightmancer","Nightshade Flower Girl","Nightshade Maiden","Nugget","Ore Chipper","Overcaster","Paragon of Shadow","Pebble","Peggy the Plunderer","Primal","Pugilist","Pumpkin Head","Pygmy Wrangler","Quesodillo","Rain Collector","Rain Summoner","Rain Wallower","Rainmancer","Rainwater Purifier","Ravenous Zombie","Relic Hunter","Reveling Lycanthrope","Richard the Rich","Riptide","Rock Muncher","Rubble Rouser","Rubble Rummager","Sand Colossus","Sand Pilgrim","Sarcophamouse","Scarab","Scarecrow","Scarlet Revenger","Scruffy","Serpentine","Shadow Sage","Silvertail","Sky Greaser","Skydiver","Slope Swimmer","Sludge Scientist","Speedy","Spiky Devil","Spore Salesman","Spotted","Spud","Squeaker Bot","Steel","Stone Cutter","Stonework Warrior","Stratocaster","Suave Pirate","Subterranean","Swarm of Pygmy Mice","Terra","Tidal Fisher","Tiny","Tiny Toppler","Trampoline","Troll","Twisted Fiend","Vampire","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Wave Racer","Wealthy Werewarrior","Werehauler","Wereminer","Whirleygig","White","Windy Farmer","Winter Games","Zealous Academic","Zephyr","Zombie"]
+		},
+        {type:"Tactical",
+        mice: ["Abominable Snow","Admiral Cloudbeard","Aether","Alnilam","Angry Aphid","Archer","Assassin","Bear","Beast Tamer","Berserker","Big Bad Burroughs","Bionic","Black Widow","Blacksmith","Bookborn","Brown","Captain Cloudkicker","Captain Croissant","Caravan Guard","Caretaker","Cavalier","Centaur","Chameleon","Cherry","Chess Master","Clockwork Samurai","Cloud Miner","Clumsy Chemist","Conjurer","Conqueror","Consumed Charm Tinkerer","Core Sample","Cowardly","Cowbell","Craggy Ore","Crazed Cultivator","Crimson Commander","Crown Collector","Curious Chemist","Cutthroat Cannoneer","Cutthroat Pirate","Cyclops","Dancer","Daydreamer","Defender","Demolitions","Desert Architect","Desert Nomad","Diamond","Dojo Sensei","Drummer","Dumpling Chef","Dwarf","Eagle Owl","Effervescent","Elven Princess","Empyrean Appraiser","Empyrean Geologist","Extreme Everysports","Fairy","Falling Carpet","Farmhand","Fencer","Fiddler","Field","Finder","Firebreather","Firefly","Flutterby","Flying","Fog","Fortuitous Fool","Foxy","Frog","Frosty Snow","Frozen","Glass Blower","Gold","Goldleaf","Grandfather","Granite","Grey","Grit Grifter","Guqin Player","Gyrologer","Hapless","Hapless Marionette","Hot Head","Hurdle","Hydra","Industrious Digger","Infiltrator","Itty-Bitty Burroughs","Kite Flyer","Knight","Kung Fu","Lambent Crystal","Land Loafer","Launchpad Labourer","Lightning Rod","Limestone Miner","Loathsome Locust","Longtail","Lumberjack","M400","Mage Weaver","Magic","Mairitime Pirate","Market Guard","Master of the Cheese Belt","Master of the Cheese Claw","Master of the Cheese Fang","Master of the Dojo","Mighty Mite","Miner","Mole","Monarch","Monk","Monstrous Midge","Moosker","Mountain","Mutated Brown","Mutated Grey","Mutated Mole","Mutated White","Mystic Bishop","Mystic King","Mystic Knight","Mystic Pawn","Mystic Queen","Mystic Rook","Narrator","Nerg Chieftain","Nibbler","Ninja","Nomad","Nugget","Page","Paragon of Tactics","Pathfinder","Pebble","Peggy the Plunderer","Phalanx","Pugilist","Puppet Master","Relic Hunter","Richard the Rich","Rock Muncher","Rocketeer","Root Rummager","Samurai","Sand Cavalry","Sandwing Cavalry","Scarlet Revenger","Scruffy","Seasoned Islandographer","Shaman","Silvertail","Sky Greaser","Skydiver","Slayer","Slope Swimmer","Sludge Scientist","Snake Charmer","Sock Puppet Ghost","Speedy","Spice Merchant","Spotted","Spud","Squeaker Bot","Steel","Stinger","Stone Cutter","Student of the Cheese Belt","Student of the Cheese Claw","Student of the Cheese Fang","Suave Pirate","Subterranean","Summer Mage","Sylvan","Technic Bishop","Technic King","Technic Knight","Technic Pawn","Technic Queen","Technic Rook","Tiger","Tiny","Tome Sprite","Toy Sylvan","Trampoline","Treant","Walker","Warden of Fog","Warden of Frost","Warden of Rain","Warden of Wind","Wave Racer","White","Wicked Witch of Whisker Woods","Wiggler","Wily Weevil","Winter Games","Worker","Worried Wayfinder","Wound Up White","Zurreal the Eternal"]
+	}
+    ]
+
 })());
