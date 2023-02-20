@@ -225,7 +225,7 @@
 				}
 			  }
 			if (used==0){
-				console.log(mname)
+				mouseTypeList["Parental"].push(mouse);
 			}
         })
 		console.log(mouseScore);
@@ -426,9 +426,6 @@
 		// Append the button.
 		header.appendChild(closeIcon);
 
-		// Add the header to the modal.
-		modal.appendChild(header);
-
 		const mouseBody = document.createElement('div');
 		mouseBody.classList.add('cmt-type-details-body');
 
@@ -467,6 +464,29 @@
 			mouseBody.appendChild(mouseEl)
 
 		}
+				const toggleButton = document.createElement('button');
+		toggleButton.textContent = 'Toggle Visibility';
+		let visible = true;
+		toggleButton.addEventListener('click', function() {
+			const elements = document.querySelectorAll('.cmt-mice-stats-finished');
+			// Toggle the visibility of the elements by changing their display property
+			if (visible) {
+			  elements.forEach(function(element) {
+				element.style.display = 'none';
+			  });
+			  visible = false;
+			} else {
+			  elements.forEach(function(element) {
+				element.style.display = 'block';
+			  });
+			  visible = true;
+			}
+		  });
+		  
+		// Append the button to the header element
+		header.appendChild(toggleButton);
+		// Add the header to the modal.
+		modal.appendChild(header);
 		modal.appendChild(mouseBody);
 
 		// Add the modal to the wrapper.
@@ -549,6 +569,11 @@
 	.cmt-mice-stats-finished, .cmt-mice-stats-wrapper .cmt-mice-stats-finished:nth-child(odd) {
 		color: #ffffff;
 		background-color: black !important;
+		display: flex;
+        justify-content: space-between;
+        padding: 2px 0;
+        align-items: center;
+        padding: 10px 10px;
 	}
 
     .cmt-mice-stats:hover, .cmt-type-details:hover, .cmt-mice-stats-finished:hover
@@ -628,3 +653,4 @@
     ]
 
 })());
+
